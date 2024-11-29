@@ -8,19 +8,19 @@ edition = "2021"
 [dependencies]
 anyhow = "1"
 axum = { version = "0.7", features = ["macros"] }
-axum_typed_multipart = "0.11.0"
+axum_typed_multipart = "0.13.0"
 clap = { version = "4.4.11", features = ["derive"] }
 dotenvy = "0.15.7"
 futures-util = { version = "0.3.29", features = ["futures-sink"] }
 log = "0.4"
-maud = { version = "0.25.0", features = ["axum"] }
-object_store = { version = "0.8.0", features = ["aws"] }
+maud = { version = "0.26.0", features = ["axum"] }
+object_store = { version = "0.11.0", features = ["aws"] }
 serde = { version = "1", features = ["derive"] }
-simple_logger = "4"
-thiserror = "1"
+simple_logger = "5"
+thiserror = "2"
 tokio = { version = "1", features = ["full"] }
-tower = { version = "0.4", features = ["full"] }
-tower-http = { version = "0.5", features = ["full"] }
+tower = { version = "0.5", features = ["full"] }
+tower-http = { version = "0.6", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1.6.1", features = ["v4"] }

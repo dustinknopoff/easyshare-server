@@ -1,7 +1,7 @@
 use std::{net::{IpAddr, Ipv6Addr, SocketAddr}, str::FromStr, sync::Arc};
 
 use clap::Parser;
-use axum::{extract::MatchedPath, http::Request, routing::*, Router, Extension};
+use axum::{extract::{DefaultBodyLimit, MatchedPath}, http::Request, routing::*, Extension, Router};
 use dotenvy::dotenv;
 use object_store::aws::AmazonS3Builder;
 use tokio::net::TcpListener;
@@ -27,9 +27,11 @@ struct Opt {
     port: u16,
 
     /// set the directory where static files are to be found
-    #[clap(long = "static-dir", default_value = "./public")]
+    #[clap(long = "static-dir", default_value = "static")]
     static_dir: String,
 }
+
+const GB: usize = 1024 * 1024 * 1024;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -42,7 +44,7 @@ async fn main() -> anyhow::Result<()> {
     let opt = Opt::parse();
     dotenv()?;
 
-    let serve_dir = ServeDir::new(opt.static_dir).not_found_service(ServeFile::new("public/index.html"));
+    let serve_dir = ServeDir::new(opt.static_dir).not_found_service(ServeFile::new("static/not_found.html"));
 
     let client = AmazonS3Builder::new()
     .with_region("auto")
@@ -64,7 +66,7 @@ async fn main() -> anyhow::Result<()> {
 
     let app = Router::new()
     .route("/", get(routes::home::handler))
-    .route("/upload", post(routes::upload::upload))
+    .route("/upload", post(routes::upload::upload).layer(DefaultBodyLimit::max(10 * GB)))
     .route("/share/:id", get(routes::share::list_files))
     .route("/obj/:key/:file_name", get(routes::object::get_object))
     .fallback_service(serve_dir)
