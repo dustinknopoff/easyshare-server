@@ -1,17 +1,12 @@
 use std::sync::Arc;
 
-use axum::{Extension, body::Bytes, response::Html};
+use axum::{body::Bytes, response::Html, Extension};
 use axum_typed_multipart::{FieldData, TryFromMultipart, TypedMultipart};
 use maud::html;
-use object_store::{aws::AmazonS3, path::Path, ObjectStore, PutOptions};
-use tokio::io::AsyncWriteExt;
+use object_store::{aws::AmazonS3, path::Path, ObjectStore, WriteMultipart};
 use uuid::Uuid;
 
 use crate::error::AppError;
-
-
-const GB: usize = 1024 * 1024 * 1024;
-
 
 #[derive(TryFromMultipart)]
 pub struct UploadBody {
@@ -29,23 +24,19 @@ pub async fn upload(
     let client = s3_client.clone();
     for file in files.into_iter() {
         let location = &Path::from(format!("{prefix}/{}", file.metadata.file_name.unwrap()));
-        if file.contents.len() > 5 * GB {
-            let (_id, mut writer) = client.put_multipart(location).await?;
-            writer.write_all(&file.contents).await?;
-            writer.flush().await?;
-            writer.shutdown().await?;
-        } else {
-            client
-                .clone()
-                .put_opts(location, file.contents, PutOptions::default())
-                .await?;
-        }
+        let upload = client.put_multipart(location).await.unwrap();
+        let mut write = WriteMultipart::new(upload);
+        write.write(&file.contents);
+        write.finish().await?;
     }
 
-    Ok(Html(html! {
-        p { "Success!"}
-        a href={"/share/" (prefix)} {
-            "View Files"
+    Ok(Html(
+        html! {
+            p { "Success!"}
+            a href={"/share/" (prefix)} {
+                "View Files"
+            }
         }
-    }.into_string()))
+        .into_string(),
+    ))
 }
