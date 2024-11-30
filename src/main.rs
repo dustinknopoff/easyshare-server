@@ -1,7 +1,7 @@
 use std::{net::{IpAddr, Ipv6Addr, SocketAddr}, str::FromStr, sync::Arc};
 
 use clap::Parser;
-use axum::{extract::{DefaultBodyLimit, MatchedPath}, http::Request, routing::*, Extension, Router};
+use axum::{extract::{DefaultBodyLimit, MatchedPath}, http::{Request, StatusCode}, response::IntoResponse, routing::*, Extension, Router};
 use dotenvy::dotenv;
 use object_store::aws::AmazonS3Builder;
 use tokio::net::TcpListener;
@@ -66,6 +66,7 @@ async fn main() -> anyhow::Result<()> {
 
     let app = Router::new()
     .route("/", get(routes::home::handler))
+    .route("/healthcheck", get(healthcheck))
     .route("/upload", post(routes::upload::upload).layer(DefaultBodyLimit::max(10 * GB)))
     .route("/share/:id", get(routes::share::list_files))
     .route("/obj/:key/:file_name", get(routes::object::get_object))
@@ -96,4 +97,9 @@ async fn main() -> anyhow::Result<()> {
     axum::serve(listener, app).await.unwrap();
 
     Ok(())
+}
+
+#[axum::debug_handler]
+async fn healthcheck() -> StatusCode {
+    StatusCode::OK
 }
